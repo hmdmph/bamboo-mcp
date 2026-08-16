@@ -28,6 +28,7 @@ BAMBOO_TOKEN  ?=
 BAMBOO_PROXY  ?=
 BITBUCKET_URL ?=
 VERBOSE       ?= true
+SKIP_VALIDATION ?=
 
 # ─────────────────────────────────────────────────────────────────────────────
 help:
@@ -125,7 +126,9 @@ clean:
 # ── Docker ────────────────────────────────────────────────────────────────────
 docker-build:
 	@echo "Building Docker image $(DOCKER_IMAGE):$(DOCKER_TAG) (version=$(VERSION))..."
-	@podman build --build-arg VERSION=$(VERSION) -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	@# --format docker is required for HEALTHCHECK to survive: podman defaults to
+	@# the OCI image format, which has no healthcheck field and drops it silently.
+	@podman build --format docker --build-arg VERSION=$(VERSION) -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 	@echo "Image built: $(DOCKER_IMAGE):$(DOCKER_TAG)"
 
 docker-run: docker-build
@@ -144,7 +147,14 @@ docker-rm-container:
 
 docker-run-sse: docker-build docker-rm-container
 	@echo "Running container (SSE/HTTP on :$(HTTP_PORT)) — $(DOCKER_NAME)..."
-	@podman run  --name $(DOCKER_NAME) \
+	@# -d: detached, so docker-logs/docker-stop work as documented.
+	@# --health-*: podman does not always inherit the image HEALTHCHECK when
+	@# talking to a remote machine, so wire the same probe up explicitly.
+	@podman run -d --name $(DOCKER_NAME) \
+		--health-cmd 'nc -z localhost 8080 || exit 1' \
+		--health-interval 30s \
+		--health-start-period 10s \
+		--health-retries 3 \
 		-e BAMBOO_URL=$(BAMBOO_URL) \
 		-e BAMBOO_TOKEN=$(BAMBOO_TOKEN) \
 		-e BAMBOO_PROXY=$(BAMBOO_PROXY) \
@@ -153,6 +163,7 @@ docker-run-sse: docker-build docker-rm-container
 		-e MCP_HTTP_PORT=8080 \
 		-e MCP_BASE_URL=$(MCP_BASE_URL) \
 		-e VERBOSE=$(VERBOSE) \
+		-e SKIP_VALIDATION=$(SKIP_VALIDATION) \
 		-p $(HTTP_PORT):8080 \
 		$(DOCKER_IMAGE):$(DOCKER_TAG)
 	@echo "SSE server running at http://localhost:$(HTTP_PORT)"
