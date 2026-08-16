@@ -14,6 +14,9 @@ DOCKER_NAME   ?= bamboo-mcp
 HTTP_PORT     ?= 8080
 MCP_BASE_URL  ?= http://localhost:$(HTTP_PORT)
 
+# Stamped into the binary via -ldflags. CI overrides this with the git tag.
+VERSION       ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+
 # ── Bamboo connection (never hardcode secrets here) ───────────────────────────
 # Supply these via the environment or an untracked .env.dev file, e.g.:
 #   BAMBOO_URL=https://bamboo.example.com
@@ -64,7 +67,7 @@ help:
 # ── Build & Run ───────────────────────────────────────────────────────────────
 build:
 	@echo "Building bamboo-mcp..."
-	@go build -ldflags="-s -w" -o bin/bamboo-mcp cmd/server/main.go
+	@go build -trimpath -ldflags="-s -w -X main.version=$(VERSION)" -o bin/bamboo-mcp ./cmd/server
 	@echo "Binary: bin/bamboo-mcp"
 
 run: build
@@ -121,8 +124,8 @@ clean:
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 docker-build:
-	@echo "Building Docker image $(DOCKER_IMAGE):$(DOCKER_TAG)..."
-	@podman build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	@echo "Building Docker image $(DOCKER_IMAGE):$(DOCKER_TAG) (version=$(VERSION))..."
+	@podman build --build-arg VERSION=$(VERSION) -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 	@echo "Image built: $(DOCKER_IMAGE):$(DOCKER_TAG)"
 
 docker-run: docker-build

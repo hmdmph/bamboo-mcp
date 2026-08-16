@@ -16,6 +16,10 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+// version is the server version, overridden at build time with
+// -ldflags "-X main.version=v1.2.3". Release builds set it from the git tag.
+var version = "dev"
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -23,7 +27,7 @@ func main() {
 	}
 
 	logger.SetVerbose(cfg.Verbose)
-	logger.Info("Starting Bamboo MCP Server v1.4.0")
+	logger.Info("Starting Bamboo MCP Server %s", version)
 	logger.Info("Bamboo URL: %s", cfg.BambooURL)
 	logger.Info("Transport: %s", cfg.Transport)
 
@@ -63,7 +67,7 @@ func main() {
 
 	s := server.NewMCPServer(
 		"Bamboo MCP Server",
-		"1.4.0",
+		version,
 		server.WithPromptCapabilities(false),
 	)
 

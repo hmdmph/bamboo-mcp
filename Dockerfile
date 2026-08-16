@@ -1,5 +1,7 @@
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
-FROM golang:1.23-alpine AS builder
+# --platform=$BUILDPLATFORM keeps the compile native and cross-compiles instead
+# of emulating the target arch, which is far faster for multi-arch builds.
+FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
@@ -7,7 +9,14 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bamboo-mcp cmd/server/main.go
+
+# Supplied by buildx; default so a plain `docker build` still works.
+ARG TARGETOS=linux
+ARG TARGETARCH
+ARG VERSION=dev
+
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /bamboo-mcp ./cmd/server
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
 FROM alpine:3.20

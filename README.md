@@ -167,6 +167,17 @@ export BAMBOO_TOKEN=your_personal_access_token
 
 ### Docker / Podman
 
+Prebuilt multi-arch images (`linux/amd64`, `linux/arm64`) are published to GHCR on every release:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e BAMBOO_URL=https://bamboo.example.com \
+  -e BAMBOO_TOKEN=your_token \
+  ghcr.io/hmdmph/bamboo-mcp:latest
+```
+
+Tags: `latest`, `1`, `1.2`, `1.2.3`. Or build it yourself:
+
 ```bash
 make docker-build
 make docker-run-sse                 # detached, SSE on :8080
@@ -598,6 +609,28 @@ s.AddTool(mcp.NewTool("bamboo_new_feature",
 ```
 
 The `w(...)` wrapper is not optional — an unwrapped tool bypasses the entire security layer.
+
+### Releasing
+
+Releases are cut by pushing a version tag — everything else is automated by
+[`.github/workflows/release.yml`](.github/workflows/release.yml):
+
+```bash
+git tag -a v1.0.0 -m "v1.0.0"
+git push origin v1.0.0
+```
+
+That triggers, in order:
+
+1. **Test gate** — `gofmt` check, `go vet`, `go test -race`. Nothing ships if this fails.
+2. **Container image** → `ghcr.io/<owner>/bamboo-mcp`, multi-arch, tagged `1.0.0`, `1.0`, `1` and `latest`, with build provenance attestation.
+3. **GitHub Release** — cross-compiled binaries for linux/darwin (amd64 + arm64) and windows/amd64, plus `SHA256SUMS` and auto-generated notes.
+
+A tag containing a hyphen (`v1.0.0-rc1`) is published as a **pre-release** and does not move `latest`.
+
+No secrets to configure — the workflow authenticates to GHCR with the built-in `GITHUB_TOKEN`. One-time setup: the first release creates the package as private, so make it public under *Packages → bamboo-mcp → Package settings* if you want anonymous pulls.
+
+The version is stamped into the binary at build time via `-ldflags -X main.version=`, so `VERBOSE=true` logs report the exact release. Local builds report `git describe` output instead.
 
 ### Adding a plan type
 

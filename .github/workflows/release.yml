@@ -1,0 +1,201 @@
+name: Release
+
+# Fires when you push a version tag:
+#   git tag -a v1.0.0 -m "v1.0.0" && git push origin v1.0.0
+#
+# Produces, in order:
+#   1. a test gate (fmt + vet + test) — nothing ships if it fails
+#   2. a multi-arch container image on GHCR
+#   3. a GitHub Release with cross-compiled binaries, checksums and notes
+#
+# To re-run a release, use "Re-run all jobs" on the failed run — that replays
+# it against the same tag. A workflow_dispatch trigger is deliberately omitted:
+# the whole pipeline keys off a tag ref, which a branch dispatch cannot supply.
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  GO_VERSION: "1.23"
+
+jobs:
+  # ── 1. Gate ─────────────────────────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l cmd internal scripts)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files are not gofmt'd:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test -race ./...
+
+  # ── 2. Container image ──────────────────────────────────────────────────────
+  docker:
+    name: Build and push image
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Stage 2 of the Dockerfile runs apk/adduser, so the non-native arch
+      # needs emulation. The Go build itself cross-compiles natively.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # v1.2.3 produces: 1.2.3, 1.2, 1, latest
+          # A pre-release tag (v1.2.3-rc1) produces only 1.2.3-rc1 — never latest.
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          labels: |
+            org.opencontainers.image.title=bamboo-mcp
+            org.opencontainers.image.description=Read-only MCP server for self-hosted Atlassian Bamboo
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      # Supply-chain provenance. Non-fatal: a hiccup here should not sink a
+      # release whose image already pushed successfully.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        continue-on-error: true
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+  # ── 3. GitHub Release ───────────────────────────────────────────────────────
+  release:
+    name: Publish release
+    needs: [test, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # release notes need history
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build release binaries
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          mkdir -p dist
+          targets="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64"
+          for t in $targets; do
+            os="${t%/*}"; arch="${t#*/}"
+            bin="bamboo-mcp"
+            [ "$os" = "windows" ] && bin="bamboo-mcp.exe"
+            echo "→ $os/$arch"
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build \
+              -trimpath -ldflags="-s -w -X main.version=${VERSION}" \
+              -o "dist/$bin" ./cmd/server
+            if [ "$os" = "windows" ]; then
+              (cd dist && zip -q "bamboo-mcp_${VERSION}_${os}_${arch}.zip" "$bin" && rm "$bin")
+            else
+              (cd dist && tar -czf "bamboo-mcp_${VERSION}_${os}_${arch}.tar.gz" "$bin" && rm "$bin")
+            fi
+          done
+          # Glob the archives explicitly so SHA256SUMS never checksums itself.
+          (cd dist && sha256sum bamboo-mcp_* > SHA256SUMS)
+          ls -lh dist
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.ref_name }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        run: |
+          # A tag containing a hyphen (v1.0.0-rc1) is treated as a pre-release.
+          prerelease=""
+          case "$VERSION" in *-*) prerelease="--prerelease" ;; esac
+
+          cat > notes.md <<EOF
+          ## Container image
+
+          \`\`\`bash
+          docker pull ${IMAGE}:${VERSION#v}
+          \`\`\`
+
+          Multi-arch (\`linux/amd64\`, \`linux/arm64\`), digest \`${{ needs.docker.outputs.digest }}\`.
+
+          ## Binaries
+
+          Download the archive for your platform below and verify it:
+
+          \`\`\`bash
+          sha256sum -c SHA256SUMS --ignore-missing
+          \`\`\`
+
+          ---
+          EOF
+
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --notes-file notes.md \
+            --generate-notes \
+            $prerelease \
+            dist/*
