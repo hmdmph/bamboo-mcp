@@ -94,7 +94,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=bamboo-mcp
             org.opencontainers.image.description=Read-only MCP server for self-hosted Atlassian Bamboo
-            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.licenses=Apache-2.0
 
       - name: Build and push
         id: build

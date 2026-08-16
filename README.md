@@ -662,7 +662,7 @@ Issues and pull requests welcome. Please run `make all` before opening a PR.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Apache License 2.0 — see [LICENSE](LICENSE).
 
 ## Roadmap
 
