@@ -30,6 +30,10 @@ RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 
+# Proves to the MCP Registry that whoever publishes this server name also
+# controls this image. The value MUST match "name" in server.json exactly.
+LABEL io.modelcontextprotocol.server.name="io.github.hmdmph/bamboo-mcp"
+
 COPY --from=builder /bamboo-mcp /app/bamboo-mcp
 
 RUN addgroup -S mcp && adduser -S mcp -G mcp && \

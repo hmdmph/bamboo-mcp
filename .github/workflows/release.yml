@@ -122,7 +122,42 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
-  # ── 3. GitHub Release ───────────────────────────────────────────────────────
+  # ── 3. MCP Registry ─────────────────────────────────────────────────────────
+  # Runs after the image exists: the registry verifies ownership by pulling the
+  # image and checking its io.modelcontextprotocol.server.name label.
+  mcp-registry:
+    name: Publish to MCP Registry
+    needs: docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC — no secrets or PAT needed
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" \
+            | tar xz mcp-publisher
+
+      # Keep server.json in lockstep with the tag rather than trusting it to
+      # have been bumped by hand: the version and the image tag must agree.
+      - name: Stamp version into server.json
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          jq --arg v "$VERSION" \
+             --arg img "${REGISTRY}/${IMAGE_NAME}:${VERSION}" \
+             '.version = $v | .packages[0].identifier = $img' \
+             server.json > server.tmp && mv server.tmp server.json
+          echo "── server.json ──"; cat server.json
+
+      - name: Authenticate to MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish
+        run: ./mcp-publisher publish
+
+  # ── 4. GitHub Release ───────────────────────────────────────────────────────
   release:
     name: Publish release
     needs: [test, docker]
