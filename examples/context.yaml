@@ -1,0 +1,130 @@
+# Example plan context configuration for bamboo-mcp.
+#
+# Copy to ~/.bamboo-mcp/context.yaml (or point CONTEXT_FILE at it) and replace
+# the placeholder values with your organisation's own Bamboo conventions.
+# After editing, call the bamboo_reload_context tool to hot-reload it — no
+# server restart needed.
+#
+# This file teaches the model how *your* plan keys and deployment environment
+# names are structured, so a user can ask "what's the deploy status of checkout
+# in staging?" instead of having to know the exact Bamboo plan key.
+
+# The Bamboo project key that plan keys are resolved against.
+# bamboo_resolve_plan builds keys as: <default_project>-<REF><SUFFIX>
+default_project: EXAMPLE
+
+# Free-form facts about your Bamboo estate, surfaced to the model as hints.
+generic_hints:
+  - "Most deployments live under the EXAMPLE project"
+  - "Plan names follow: 'Project - <REF> - <Type>'"
+
+plan_types:
+  # ── A branch-based application plan ─────────────────────────────────────────
+  - suffix: App
+    type: app
+    description: "Application deployments built from a branch and released to one or more environments."
+    plan_name_format: "Project - APP<REF> (<branch>) - App"
+    has_branch: true
+
+    # Drives environment-name parsing. Each <placeholder> consumes one
+    # underscore-separated segment; the last one absorbs whatever remains.
+    environment_format: "<env>_<action>"
+    environments: [dev, staging, prod]
+
+    # Set when teams also use environment names outside the list above.
+    custom_environments: true
+
+    actions:
+      - name: deploy
+        description: "Deploy the application to the target environment"
+      - name: rollback
+        description: "Roll the application back to a previous release"
+      - name: inspect
+        description: "Inspect the currently deployed state"
+
+    # Strings to look for in build/deployment logs, and what they mean.
+    log_patterns:
+      - name: deploy_success
+        pattern: "Deployment completed successfully"
+        indicates: "The deployment succeeded"
+
+    hints:
+      - "(<branch>) in the plan name indicates the branch being deployed (e.g. main, develop)"
+
+  # ── An infrastructure plan, where each environment targets one module ────────
+  - suffix: Infra
+    type: infra
+    description: "Infrastructure deployments, where each environment targets a specific module."
+    plan_name_format: "Project - <REF> - Infra"
+    has_branch: false
+
+    environment_format: "<env>_<module>_<ref>_<action>"
+    environments: [dev, staging, prod]
+
+    # <module> is matched greedily against this list, so module names that
+    # themselves contain underscores (e.g. load_balancer) parse correctly.
+    modules: [network, database, storage, load_balancer]
+    module_descriptions:
+      network: "Networking resources (VPCs, subnets, routing)"
+      database: "Managed database instances and clusters"
+      storage: "Object storage and file systems"
+      load_balancer: "Application and network load balancers"
+
+    actions:
+      - name: plan
+        description: "Preview the changes that would be applied"
+      - name: deploy
+        description: "Apply the infrastructure changes"
+      - name: teardown
+        description: "Destroy the provisioned infrastructure"
+
+    # Variables that can be supplied when running the plan.
+    custom_inputs:
+      - variable: target_module
+        description: "Deploy a single module instead of all of them"
+        values: [network, database, storage, load_balancer]
+
+    hints:
+      - "Without target_module, the plan deploys every module"
+
+  # ── A plan whose environments have a literal marker segment ─────────────────
+  - suffix: Node Group
+    type: nodegroup
+    description: "Node group scaling and maintenance operations."
+    plan_name_format: "Project - <REF> - Node Group"
+    has_branch: false
+
+    # "nodegroup" here is a literal, not a placeholder — it is matched as-is
+    # and reported back as "marker".
+    environment_format: "<env>_nodegroup_<action>"
+    environments: [dev, staging, prod]
+    actions:
+      - name: inspect
+        description: "Inspect current node group status"
+      - name: up
+        description: "Scale the node group up"
+      - name: down
+        description: "Scale the node group down"
+
+  # ── A plan with fixed deployment names rather than a positional format ──────
+  - suffix: Registry
+    type: registry
+    description: "Container registry management."
+    has_branch: false
+
+    # A single fixed plan key: bamboo_resolve_plan returns this directly
+    # instead of composing <default_project>-<REF><SUFFIX>.
+    plan_key_match: EXAMPLE-REGISTRY
+
+    # How the matching deployment projects are named in the Bamboo UI.
+    deployment_project_format: "Project - <REF> - Registry"
+
+    # With fixed_deployments set, environment_format is not used — names are
+    # matched against this list exactly.
+    fixed_deployments:
+      - create_repos
+      - import_images
+      - promote_to_prod
+
+    hints:
+      - "Workflow order: create_repos → import_images → promote_to_prod"
