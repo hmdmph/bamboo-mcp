@@ -109,8 +109,12 @@ jobs:
             VERSION=${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: true
-          sbom: true
+          # Inline provenance/SBOM force OCI media types, whose image config has
+          # no healthcheck field — v0.1.0 and v0.1.1 both shipped with HEALTHCHECK
+          # silently dropped. Provenance is still attested by the step below,
+          # which is independent of the image's media type.
+          provenance: false
+          sbom: false
 
       # Supply-chain provenance. Non-fatal: a hiccup here should not sink a
       # release whose image already pushed successfully.
