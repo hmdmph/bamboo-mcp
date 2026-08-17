@@ -1,0 +1,61 @@
+name: CI
+
+# Runs on every push and pull request, so the test suite gates day-to-day work
+# rather than only the release pipeline (.github/workflows/release.yml), which
+# fires on version tags.
+on:
+  push:
+    branches:
+      - main
+      - public
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.23"
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l cmd internal scripts)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files are not gofmt'd:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      # TestToolsJSONIsCurrent inside this run also fails if tools.json is stale,
+      # so the committed manifest cannot drift from the catalog.
+      - name: go test
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1 >> "$GITHUB_STEP_SUMMARY"
+
+      # A build-time check that every declared tool is routed: registration
+      # aborts if a catalog entry has no handler.
+      - name: Tool catalog
+        run: |
+          count="$(go run ./cmd/server --list-tools | grep -c '^      "name":')"
+          echo "Declared tools: $count" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$count" -eq 0 ]; then
+            echo "::error::The tool catalog is empty"
+            exit 1
+          fi
