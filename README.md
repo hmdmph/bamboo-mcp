@@ -6,6 +6,7 @@ Ask *"who deployed CHECKOUT to staging and did it pass?"* instead of clicking th
 
 **Read-only by design.** Every tool is registered behind a policy engine that enforces a GET-only floor. This server cannot trigger a build, start a deployment, or change anything in Bamboo.
 
+[![M8ven Verified](https://m8ven.ai/badge/mcp/hmdmph-bamboo-mcp-1d0x48?variant=verified)](https://m8ven.ai/mcp/hmdmph-bamboo-mcp-1d0x48)
 ---
 
 ## ⚠️ About self-hosted Bamboo
@@ -119,7 +120,10 @@ Stores repository URL/username/token in `~/.bamboo-mcp/bitbucket.json` (mode 060
 
 </details>
 
-**35 tools total.**
+**35 tools total.** The full surface — names, descriptions and JSON Schemas — is
+generated into [`tools.json`](tools.json), and `bamboo-mcp --list-tools` prints
+the same payload without needing a Bamboo connection. See
+[the tool manifest](#the-tool-manifest).
 
 ### 9 prompt templates
 
@@ -145,6 +149,7 @@ MCP prompts give the model a structured plan for common workflows, so you get co
 - **Startup validation** — config completeness, URL format, network reachability, token validity, transport sanity. Skippable with `SKIP_VALIDATION=true`.
 - **Security layer** — GET-only floor, per-tool rate limits, result caps, response size limits, prompt-injection scanning. See [Security model](#security-model).
 - **Proxy support** — `BAMBOO_PROXY` for corporate networks.
+- **Declared tool surface** — [`tools.json`](tools.json) and `--list-tools`, generated from the catalog and verified in CI, with a test that calls every declared tool. See [Tests](#tests).
 
 ---
 
@@ -562,7 +567,9 @@ make build            # build bin/bamboo-mcp
 make run              # run, stdio
 make run-sse          # run, SSE on :8080
 make test             # unit tests
+make test-cover       # unit tests + coverage summary
 make integration-test # exercise tools against a real Bamboo (loads .env.dev)
+make tools-manifest   # regenerate tools.json from the tool catalog
 make fmt vet lint     # code quality
 make all              # fmt + vet + test + build
 make docker-build     # container image
@@ -571,11 +578,20 @@ make clean
 
 Never hardcode credentials in the Makefile — it reads them from the environment or an untracked `.env.dev`.
 
+The binary takes no arguments in normal operation; these flags run one thing and exit:
+
+| Flag | What it does |
+|---|---|
+| `--list-tools` | Print the tool catalog as a `tools/list` payload. Needs no config or Bamboo connection. |
+| `--validate-only` | Run the startup checks, print the report, don't serve. |
+| `--version` | Print the version stamped in at build time. |
+
 ### Project structure
 
 ```
 bamboo-mcp/
 ├── cmd/server/main.go             # entry point: transport, tool + prompt registration
+├── tools.json                     # generated tool manifest (make tools-manifest)
 ├── internal/
 │   ├── bamboo/client.go           # Bamboo REST client (60s timeout, proxy, Bearer auth)
 │   ├── config/config.go           # env-var configuration
@@ -588,7 +604,9 @@ bamboo-mcp/
 │   │   ├── sanitizer.go           # prompt-injection scanning + redaction
 │   │   └── middleware.go          # Wrap(): policy gate → handler → sanitize
 │   ├── storage/bitbucket.go       # JSON credential store (0600)
-│   ├── tools/                     # MCP tool handlers
+│   ├── tools/
+│   │   ├── catalog.go             # the 35 tool declarations + name → handler map
+│   │   └── *_tools.go             # MCP tool handlers
 │   └── validation/validate.go     # startup checks
 ├── examples/context.yaml          # fully worked plan-context example
 ├── scripts/                       # integration test helpers
@@ -596,19 +614,61 @@ bamboo-mcp/
 └── ARCHITECTURE.md                # deeper design notes
 ```
 
+### Tests
+
+```bash
+make test         # go test ./...
+make test-cover   # with a coverage summary
+```
+
+Every tool in the catalog is exercised. `internal/tools/catalog_test.go` walks
+`Catalog()` and calls each tool through its registered handler against a fake
+Bamboo REST server (`helpers_test.go`), so a tool that is declared but broken,
+unrouted, or untested fails the build — there is no way to add a tool without a
+test. Alongside that, the suite covers required-argument handling, upstream
+error propagation, the plan-context resolution and environment parsing, and
+token masking in the credential store.
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs `gofmt`, `go vet` and
+`go test -race` on every push and pull request; the release pipeline repeats the
+same gate before anything ships.
+
 ### Adding a tool
 
 1. Add the API method to `internal/bamboo/client.go`.
 2. Add a handler in `internal/tools/bamboo_tools.go`.
-3. Register it in `cmd/server/main.go`, **wrapped by the policy engine**:
+3. Declare the tool in `internal/tools/catalog.go` — both in the relevant
+   `*Catalog()` function and in `Handlers()`:
 
 ```go
-s.AddTool(mcp.NewTool("bamboo_new_feature",
+// in bambooCatalog()
+mcp.NewTool("bamboo_new_feature",
     mcp.WithDescription("What it does"),
-), w("bamboo_new_feature", "GET", bambooTools.NewFeature, policy, sanitizer))
+),
+
+// in Handlers()
+"bamboo_new_feature": b.NewFeature,
 ```
 
-The `w(...)` wrapper is not optional — an unwrapped tool bypasses the entire security layer.
+4. Add a case to `toolCases` in `internal/tools/catalog_test.go`.
+5. Run `make tools-manifest` to regenerate `tools.json`.
+
+`cmd/server/main.go` registers whatever `Catalog()` returns, each one wrapped by
+the policy engine — there is no way to expose a tool that bypasses the security
+layer. Startup aborts if a declared tool has no handler, `TestEveryDeclaredToolIsExercised`
+fails if it has no test, and `TestToolsJSONIsCurrent` fails if `tools.json` is stale.
+
+### The tool manifest
+
+[`tools.json`](tools.json) is the full tool surface — names, descriptions and
+JSON Schemas — in exactly the shape an MCP client receives from `tools/list`. It
+is generated from the catalog, not hand-maintained, and the binary can print it
+without credentials or a reachable Bamboo:
+
+```bash
+bamboo-mcp --list-tools
+docker run --rm ghcr.io/hmdmph/bamboo-mcp:latest --list-tools
+```
 
 ### Releasing
 

@@ -1,4 +1,5 @@
-.PHONY: help build run run-sse validate test integration-test clean install lint fmt vet deps \
+.PHONY: help build run run-sse validate test test-cover integration-test tools-manifest \
+        clean install lint fmt vet deps \
         docker-build docker-run docker-run-sse docker-stop docker-logs docker-push all
 
 .DEFAULT_GOAL := help
@@ -43,7 +44,9 @@ help:
 	@echo ""
 	@echo "  Testing"
 	@echo "    make test             Run unit tests"
+	@echo "    make test-cover       Run unit tests with a coverage summary"
 	@echo "    make integration-test Run integration tests against real Bamboo"
+	@echo "    make tools-manifest   Regenerate tools.json from the tool catalog"
 	@echo ""
 	@echo "  Code Quality"
 	@echo "    make fmt              Format code"
@@ -88,9 +91,22 @@ test:
 	@echo "Running tests..."
 	@go test -v ./...
 
+test-cover:
+	@echo "Running tests with coverage..."
+	@go test -race -coverprofile=coverage.out ./...
+	@go tool cover -func=coverage.out | tail -1
+
 integration-test: build
 	@echo "Running integration tests..."
 	@go run scripts/integration_check.go
+
+# tools.json is the machine-readable tool surface: the same payload a client gets
+# from tools/list, generated straight from the catalog so it cannot drift.
+# TestToolsJSONIsCurrent fails if this file is stale.
+tools-manifest:
+	@echo "Regenerating tools.json..."
+	@go run ./cmd/server --list-tools > tools.json
+	@echo "tools.json: $$(grep -c '^      "name":' tools.json) tools"
 
 # ── Code Quality ──────────────────────────────────────────────────────────────
 fmt:
@@ -120,7 +136,7 @@ deps:
 
 clean:
 	@echo "Cleaning..."
-	@rm -rf bin/
+	@rm -rf bin/ coverage.out
 	@go clean
 
 # ── Docker ────────────────────────────────────────────────────────────────────
