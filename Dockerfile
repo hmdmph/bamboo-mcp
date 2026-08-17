@@ -36,6 +36,10 @@ LABEL io.modelcontextprotocol.server.name="io.github.hmdmph/bamboo-mcp"
 
 COPY --from=builder /bamboo-mcp /app/bamboo-mcp
 
+# The tool surface, readable without starting the server or holding a Bamboo
+# token — `docker run --rm <image> --list-tools` prints the same payload.
+COPY tools.json /app/tools.json
+
 RUN addgroup -S mcp && adduser -S mcp -G mcp && \
     mkdir -p /home/mcp/.bamboo-mcp && \
     chown -R mcp:mcp /home/mcp /app

@@ -1,0 +1,548 @@
+{
+  "tools": [
+    {
+      "name": "bamboo_server_info",
+      "description": "Get Bamboo server information",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "expand": {
+            "description": "Optional fields to expand",
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "bamboo_health_check",
+      "description": "Check if Bamboo server is healthy and accessible",
+      "inputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "bamboo_list_projects",
+      "description": "List Bamboo projects with pagination",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "maxResult": {
+            "description": "Maximum number of results per page (default: 25)",
+            "type": "number"
+          },
+          "startIndex": {
+            "description": "Start index for pagination (default: 0)",
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "name": "bamboo_list_all_projects",
+      "description": "List all Bamboo projects (fetches all pages automatically)",
+      "inputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "bamboo_get_project",
+      "description": "Get details of a specific Bamboo project",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectKey": {
+            "description": "The project key (e.g., 'PROJ')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectKey"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_list_plans",
+      "description": "List all Bamboo build plans",
+      "inputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "bamboo_get_plan",
+      "description": "Get details of a specific Bamboo build plan",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "planKey": {
+            "description": "The plan key (e.g., 'PROJ-PLAN')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planKey"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_search_plans",
+      "description": "Search for Bamboo build plans",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "searchTerm": {
+            "description": "Search term to find plans",
+            "type": "string"
+          }
+        },
+        "required": [
+          "searchTerm"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_list_plan_branches",
+      "description": "List all branches for a specific plan",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "planKey": {
+            "description": "The plan key (e.g., 'PROJ-PLAN')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planKey"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_plan_branch",
+      "description": "Get details of a specific plan branch",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "branchName": {
+            "description": "The branch name",
+            "type": "string"
+          },
+          "planKey": {
+            "description": "The plan key (e.g., 'PROJ-PLAN')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planKey",
+          "branchName"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_latest_result",
+      "description": "Get the latest build result for a plan",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "planKey": {
+            "description": "The plan key (e.g., 'PROJ-PLAN')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planKey"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_list_build_results",
+      "description": "List build results for a plan",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "maxResults": {
+            "description": "Maximum number of results to return (default: 25)",
+            "type": "number"
+          },
+          "planKey": {
+            "description": "The plan key (e.g., 'PROJ-PLAN')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planKey"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_build_result",
+      "description": "Get details of a specific build result",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "buildKey": {
+            "description": "The build key (e.g., 'PROJ-PLAN-123')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "buildKey"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_build_result_expanded",
+      "description": "Get expanded build result with changes, artifacts, metadata, comments, labels, JIRA issues, stages, and log URLs. Use this when you need detailed build information including what changed and deployment artifacts.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "buildKey": {
+            "description": "The build key (e.g., 'PROJ-PLAN-123')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "buildKey"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_build_repositories",
+      "description": "Get the repositories and commits (VCS revisions) associated with a specific build. Returns repository names, commit IDs, authors, and branch info. Use this to find which repo/commit was released in a build.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "buildKey": {
+            "description": "The build result key (e.g., 'EXAMPLE-APPCHECKOUT-4859')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "buildKey"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_plan_repositories",
+      "description": "Get the repositories linked to a Bamboo plan (VCS locations). Shows all source repositories configured for the plan. Use this to see which repos a plan tracks.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "planKey": {
+            "description": "The plan key (e.g., 'EXAMPLE-APPCHECKOUT')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planKey"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_build_queue",
+      "description": "Get the current build queue",
+      "inputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "bamboo_list_deployment_projects",
+      "description": "List deployment projects (default: 10, truncated client-side from full list)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "maxResult": {
+            "description": "Maximum number of deployment projects to return (default: 10)",
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "name": "bamboo_list_deployment_projects_for_plan",
+      "description": "List deployment projects linked to a specific build plan",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "planKey": {
+            "description": "The plan key (e.g., 'PROJ-PLAN')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planKey"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_deployment_project",
+      "description": "Get details of a specific deployment project",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "description": "The deployment project ID",
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_environment_results",
+      "description": "Get deployment history/results for a specific environment. Returns who deployed, when, status, version, and deployment result IDs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "environmentId": {
+            "description": "The deployment environment ID",
+            "type": "string"
+          },
+          "maxResults": {
+            "description": "Maximum number of results to return (default: 10)",
+            "type": "number"
+          }
+        },
+        "required": [
+          "environmentId"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_deployment_result",
+      "description": "Get full details of a specific deployment result including who triggered it, start/finish time, status, deployment version, and agent info.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "resultId": {
+            "description": "The deployment result ID",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resultId"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_list_deploy_versions",
+      "description": "List versions (releases) for a deployment project. Shows release names, creation dates, and associated plan branch.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "maxResults": {
+            "description": "Maximum number of versions to return (default: 10)",
+            "type": "number"
+          },
+          "projectId": {
+            "description": "The deployment project ID",
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_deploy_version",
+      "description": "Get details of a specific deployment version/release including name, creation date, creator, plan branch, and items.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "versionId": {
+            "description": "The deployment version/release ID",
+            "type": "string"
+          }
+        },
+        "required": [
+          "versionId"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_deploy_version_status",
+      "description": "Get the deployment status of a specific version across all environments. Shows which environments have this version deployed and their status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "versionId": {
+            "description": "The deployment version/release ID",
+            "type": "string"
+          }
+        },
+        "required": [
+          "versionId"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_plan_context",
+      "description": "Get the plan context knowledge configuration. Returns naming conventions for plans, deployment environments, modules, and actions. Use this to understand how plans and deployments are structured.",
+      "inputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "bamboo_reload_context",
+      "description": "Reload the plan context configuration from the context.yaml file. Use after editing the config.",
+      "inputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "bamboo_resolve_plan",
+      "description": "Resolve a human-friendly reference name to a full Bamboo plan key. For example: reference='CHECKOUT' with planType='app' resolves to 'EXAMPLE-CHECKOUTAPP'. Searches Bamboo if direct lookup fails.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "planType": {
+            "description": "Plan type: 'app', 'infra'. If omitted, tries direct key lookup.",
+            "type": "string"
+          },
+          "reference": {
+            "description": "The team/project reference name (e.g., 'CHECKOUT', 'PAYMENTS', 'APIGW')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_deploy_status",
+      "description": "Smart deployment status checker. Resolves a reference to a plan, gets latest build status, finds deployment projects, filters environments, and fetches per-environment deployment history (who, when, status, version). Returns build status, deployment environments with latest deployment details, and Bamboo UI links.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "description": "Filter environments by name (e.g., 'dev', 'staging', 'prod')",
+            "type": "string"
+          },
+          "module": {
+            "description": "Filter environments by module (e.g., 'network', 'database', 'storage')",
+            "type": "string"
+          },
+          "planType": {
+            "description": "Plan type: 'app', 'infra'. If omitted, tries direct key lookup.",
+            "type": "string"
+          },
+          "reference": {
+            "description": "The team/project reference name (e.g., 'CHECKOUT', 'PAYMENTS')",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_explain_environment",
+      "description": "Parse a deployment environment name into its components (env, module, ref, action) using plan context knowledge. When the plan type declares modules, it resolves the module name and description. Provide planType for accurate parsing.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "environmentName": {
+            "description": "The environment name to parse (e.g., 'staging_network_checkout_deploy', 'dev_deploy', 'prod_nodegroup_inspect')",
+            "type": "string"
+          },
+          "planType": {
+            "description": "Plan type for accurate parsing: 'app', 'infra'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "environmentName"
+        ]
+      }
+    },
+    {
+      "name": "bamboo_get_plan_type_info",
+      "description": "Get detailed information about a specific plan type including its naming format, environment format, available actions with descriptions, modules, log patterns for success detection, custom inputs, and hints.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "planType": {
+            "description": "Plan type: 'app', 'infra'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planType"
+        ]
+      }
+    },
+    {
+      "name": "bitbucket_add_repo",
+      "description": "Add a Bitbucket repository configuration",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Name/alias for the repository",
+            "type": "string"
+          },
+          "token": {
+            "description": "Bitbucket access token",
+            "type": "string"
+          },
+          "url": {
+            "description": "Bitbucket repository URL",
+            "type": "string"
+          },
+          "username": {
+            "description": "Bitbucket username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "username",
+          "token"
+        ]
+      }
+    },
+    {
+      "name": "bitbucket_get_repo",
+      "description": "Get a stored Bitbucket repository configuration",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Name/alias of the repository",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "name": "bitbucket_list_repos",
+      "description": "List all stored Bitbucket repository configurations",
+      "inputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "bitbucket_delete_repo",
+      "description": "Delete a stored Bitbucket repository configuration",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Name/alias of the repository to delete",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  ]
+}
