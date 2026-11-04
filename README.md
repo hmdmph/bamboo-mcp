@@ -7,6 +7,8 @@ Ask *"who deployed CHECKOUT to staging and did it pass?"* instead of clicking th
 **Read-only by design.** Every tool is registered behind a policy engine that enforces a GET-only floor. This server cannot trigger a build, start a deployment, or change anything in Bamboo.
 
 [![M8ven Verified](https://m8ven.ai/badge/mcp/hmdmph-bamboo-mcp-1d0x48?variant=verified)](https://m8ven.ai/mcp/hmdmph-bamboo-mcp-1d0x48)
+
+[![Bamboo MCP server](https://mcprush.com/badge/hmdmph-bamboo-mcp/card.svg)](https://mcprush.com/to/hmdmph-bamboo-mcp?ref=badge)
 ---
 
 ## ⚠️ About self-hosted Bamboo
