@@ -1,12 +1,17 @@
 package security
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hmdmph/bamboo-mcp/internal/logger"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
+
+// ArgsHandler is a tool implementation that only needs the call's arguments.
+// Wrap adapts it to mcp-go's context/request-based server.ToolHandlerFunc.
+type ArgsHandler func(arguments map[string]interface{}) (*mcp.CallToolResult, error)
 
 // Wrap returns a new ToolHandlerFunc that applies policy evaluation and response
 // sanitization around the original handler.  Every registered tool should be
@@ -18,10 +23,15 @@ import (
 func (e *PolicyEngine) Wrap(
 	toolName string,
 	httpMethod string,
-	handler server.ToolHandlerFunc,
+	handler ArgsHandler,
 	sanitizer *Sanitizer,
 ) server.ToolHandlerFunc {
-	return func(arguments map[string]interface{}) (*mcp.CallToolResult, error) {
+	return func(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		arguments := request.GetArguments()
+		if arguments == nil {
+			arguments = map[string]interface{}{}
+		}
+
 		// ── 1. Policy gate ────────────────────────────────────────────────────
 		result := e.Evaluate(PolicyRequest{
 			Tool:       toolName,

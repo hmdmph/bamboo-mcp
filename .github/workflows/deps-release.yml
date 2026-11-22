@@ -1,0 +1,179 @@
+name: Dependency release
+
+# Every two weeks: update all Go dependencies, and if anything changed and the
+# full test gate still passes, commit to main, tag the next patch version and
+# hand the tag to the release pipeline (.github/workflows/release.yml).
+#
+# If the update breaks the build or the tests (typically a dependency making an
+# API change), nothing is released. The changes go to a deps/auto-<date> branch
+# instead, and an issue is opened so a person can finish the migration.
+#
+# Run it by hand from the Actions tab ("Run workflow"). A manual run ignores the
+# every-other-week check.
+on:
+  schedule:
+    # Every Monday 03:00 UTC. The "Check schedule" step skips odd ISO weeks,
+    # which gives a two-week cadence. Cron itself cannot express "every 2 weeks".
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: deps-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push the deps commit and the tag
+  actions: write # start release.yml for the new tag
+  issues: write # report an update that broke the build
+
+jobs:
+  update:
+    name: Update dependencies and release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check schedule
+        id: gate
+        run: |
+          week="$(date -u +%V)"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ $((10#$week % 2)) -ne 0 ]; then
+            echo "ISO week $week is odd, so this is an off week. Skipping."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          ref: main
+          fetch-depth: 0 # the next version is computed from existing tags
+
+      - uses: actions/setup-go@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Update Go modules
+        id: update
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          go get -u ./...
+          go mod tidy
+          if git diff --quiet -- go.mod go.sum; then
+            echo "Every dependency is already up to date. Nothing to release."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+          # Keep a record of what moved for the commit, the tag and the summary.
+          {
+            echo "Updated Go dependencies:"
+            echo
+            git diff -U0 -- go.mod | grep -E '^[+-][[:space:]]*(go |require [a-z]|[a-z0-9.-]+\.[a-z]+/)' | grep -v '^[+-]\{3\}' || true
+          } > "$RUNNER_TEMP/changes.txt"
+          cat "$RUNNER_TEMP/changes.txt"
+          { echo '```'; cat "$RUNNER_TEMP/changes.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # The same gate release.yml and ci.yml run. tools.json is regenerated
+      # first because a mcp-go update can change how the catalog serialises.
+      - name: Test
+        id: test
+        if: steps.update.outputs.changed == 'true'
+        continue-on-error: true
+        run: |
+          set -e
+          go run ./cmd/server --list-tools > tools.json
+          unformatted="$(gofmt -l cmd internal scripts)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files are not gofmt'd:"
+            echo "$unformatted"
+            exit 1
+          fi
+          go vet ./...
+          go test -race ./...
+
+      - name: Configure git
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # ── Tests passed: commit, tag, release ─────────────────────────────────
+      - name: Commit and tag
+        id: tag
+        if: steps.update.outputs.changed == 'true' && steps.test.outcome == 'success'
+        run: |
+          latest="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v '[-]' | head -n1)"
+          latest="${latest:-v0.0.0}"
+          IFS=. read -r major minor patch <<< "${latest#v}"
+          next="v${major}.${minor}.$((patch + 1))"
+          echo "Latest release $latest, next $next"
+
+          git add go.mod go.sum tools.json
+          git commit -F - <<EOF
+          chore(deps): update Go dependencies for $next
+
+          $(cat "$RUNNER_TEMP/changes.txt")
+          EOF
+          git tag -a "$next" -F - <<EOF
+          $next
+
+          Scheduled dependency update.
+
+          $(cat "$RUNNER_TEMP/changes.txt")
+          EOF
+
+          # Push main first so the tag never points at a commit main lacks.
+          git push origin HEAD:main
+          git push origin "$next"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+
+      # A tag pushed with GITHUB_TOKEN does not fire release.yml's push trigger
+      # (GitHub blocks that to prevent workflow loops), so start it explicitly
+      # on the tag ref. workflow_dispatch is exempt from that rule.
+      - name: Start release
+        if: steps.tag.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          gh workflow run release.yml --ref "$VERSION"
+          echo "Released $VERSION, see the Release workflow run." >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Tests failed: park the update on a branch and open an issue ────────
+      - name: Report broken update
+        if: steps.update.outputs.changed == 'true' && steps.test.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="deps/auto-$(date -u +%Y-%m-%d)"
+          git checkout -b "$branch"
+          git add go.mod go.sum tools.json
+          git commit -m "chore(deps): update Go dependencies (tests failing)"
+          git push --force origin "$branch"
+
+          title="Scheduled dependency update failed the test gate"
+          body="$(cat <<EOF
+          The scheduled dependency update did not pass gofmt, vet or the tests, so no release was made.
+
+          - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          - Changes: ${{ github.server_url }}/${{ github.repository }}/compare/main...${branch}
+
+          \`\`\`
+          $(cat "$RUNNER_TEMP/changes.txt")
+          \`\`\`
+
+          Fix the build on \`${branch}\`, merge it to main and tag a release, or pin the offending module.
+          EOF
+          )"
+
+          # Only one open issue at a time: comment on an existing one instead.
+          existing="$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
+          exit 1

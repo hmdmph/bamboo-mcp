@@ -95,7 +95,7 @@ func (s *Sanitizer) SanitizeResult(result *mcp.CallToolResult) *mcp.CallToolResu
 		return result
 	}
 
-	var sanitized []interface{}
+	var sanitized []mcp.Content
 	var findings []Finding
 
 	for _, c := range result.Content {
@@ -116,7 +116,7 @@ func (s *Sanitizer) SanitizeResult(result *mcp.CallToolResult) *mcp.CallToolResu
 
 	// Prepend untrusted-content header
 	header := buildHeader(findings)
-	final := append([]interface{}{mcp.TextContent{Type: "text", Text: header}}, sanitized...)
+	final := append([]mcp.Content{mcp.TextContent{Type: "text", Text: header}}, sanitized...)
 
 	return &mcp.CallToolResult{Content: final, IsError: result.IsError}
 }
@@ -186,9 +186,9 @@ func (s *Sanitizer) sanitizeText(text string) (string, []Finding) {
 	return result, findings
 }
 
-func (s *Sanitizer) truncateContents(contents []interface{}) []interface{} {
+func (s *Sanitizer) truncateContents(contents []mcp.Content) []mcp.Content {
 	total := 0
-	var out []interface{}
+	var out []mcp.Content
 	for _, c := range contents {
 		if tc, ok := c.(mcp.TextContent); ok {
 			remaining := s.cfg.MaxResponseSizeBytes - total

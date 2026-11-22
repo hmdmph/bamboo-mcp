@@ -115,7 +115,7 @@ func main() {
 		addr := cfg.HTTPAddr()
 		baseURL := cfg.BaseURL()
 		logger.Info("Starting SSE/HTTP server on %s (base URL: %s)", addr, baseURL)
-		sseServer := server.NewSSEServer(s, baseURL)
+		sseServer := server.NewSSEServer(s, server.WithBaseURL(baseURL))
 		if err := sseServer.Start(addr); err != nil {
 			log.Fatalf("SSE server error: %v", err)
 		}
@@ -158,7 +158,7 @@ func registerTools(s *server.MCPServer, handlers map[string]tools.Handler, p *se
 			log.Fatalf("Tool %q is declared in the catalog but has no handler", def.Name)
 		}
 		// Every tool is a read: the policy engine enforces the GET-only floor.
-		s.AddTool(def, p.Wrap(def.Name, "GET", server.ToolHandlerFunc(h), san))
+		s.AddTool(def, p.Wrap(def.Name, "GET", security.ArgsHandler(h), san))
 	}
 
 	if len(handlers) != len(catalog) {

@@ -157,7 +157,7 @@ MCP prompts give the model a structured plan for common workflows, so you get co
 
 ## Quick start
 
-Requires **Go 1.23+** and a Bamboo personal access token.
+Requires **Go 1.26+** and a Bamboo personal access token.
 
 ```bash
 git clone https://github.com/hmdmph/bamboo-mcp.git
@@ -456,7 +456,7 @@ The failure mode this addresses: you ask "how's the deployment looking?" and the
 
 ### 12–13. Deployment hardening
 
-Startup validation refuses to serve on missing config, a malformed URL, an unreachable host or an invalid token — you find out at launch, not on the first tool call. The container runs as a non-root `mcp` user on a minimal `alpine:3.20` base, with a static binary and no shell tooling beyond BusyBox.
+Startup validation refuses to serve on missing config, a malformed URL, an unreachable host or an invalid token — you find out at launch, not on the first tool call. The container runs as a non-root `mcp` user on a minimal `alpine:3.24` base, with a static binary and no shell tooling beyond BusyBox.
 
 ### Configuration
 
@@ -691,6 +691,10 @@ That triggers, in order:
 A tag containing a hyphen (`v1.0.0-rc1`) is published as a **pre-release** and does not move `latest`.
 
 No secrets to configure — the workflow authenticates to GHCR with the built-in `GITHUB_TOKEN`. One-time setup: the first release creates the package as private, so make it public under *Packages → bamboo-mcp → Package settings* if you want anonymous pulls.
+
+#### Scheduled dependency releases
+
+[`.github/workflows/deps-release.yml`](.github/workflows/deps-release.yml) runs every other Monday at 03:00 UTC, on even ISO weeks. It runs `go get -u ./...` and `go mod tidy`, then regenerates `tools.json`. If any module changed and the test gate passes, it commits to `main`, tags the next patch version (`v0.1.3` → `v0.1.4`) and starts the release pipeline on that tag. If nothing changed, it does nothing. If the update breaks the build, nothing is released: the changes are pushed to a `deps/auto-<date>` branch and an issue is opened. You can also start it by hand from the Actions tab.
 
 The version is stamped into the binary at build time via `-ldflags -X main.version=`, so `VERBOSE=true` logs report the exact release. Local builds report `git describe` output instead.
 

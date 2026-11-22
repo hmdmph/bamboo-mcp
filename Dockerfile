@@ -1,7 +1,11 @@
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 # --platform=$BUILDPLATFORM keeps the compile native and cross-compiles instead
 # of emulating the target arch, which is far faster for multi-arch builds.
-FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS builder
+
+# If go.mod ever requires a newer Go than this image ships, fetch that toolchain
+# instead of failing the build.
+ENV GOTOOLCHAIN=auto
 
 WORKDIR /app
 
@@ -19,7 +23,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /bamboo-mcp ./cmd/server
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
-FROM alpine:3.20
+FROM alpine:3.24
 
 RUN apk add --no-cache ca-certificates tzdata
 

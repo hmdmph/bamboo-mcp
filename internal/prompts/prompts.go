@@ -1,11 +1,26 @@
 package prompts
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
+
+// promptFunc is a prompt implementation that only needs the template arguments.
+type promptFunc func(args map[string]string) (*mcp.GetPromptResult, error)
+
+// adapt converts a promptFunc to mcp-go's context/request-based handler.
+func adapt(f promptFunc) server.PromptHandlerFunc {
+	return func(_ context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		args := request.Params.Arguments
+		if args == nil {
+			args = map[string]string{}
+		}
+		return f(args)
+	}
+}
 
 // Register registers all MCP prompt templates onto the server.
 func Register(s *server.MCPServer) {
@@ -15,7 +30,7 @@ func Register(s *server.MCPServer) {
 		mcp.WithArgument("plan_type", mcp.ArgumentDescription("Plan type: app, infra")),
 		mcp.WithArgument("environment", mcp.ArgumentDescription("Filter by environment name (e.g. dev, staging, prod). REQUIRED — never infer from context.")),
 		mcp.WithArgument("module", mcp.ArgumentDescription("Filter by module (e.g. network, database, storage)")),
-	), handleDeployStatus)
+	), adapt(handleDeployStatus))
 
 	s.AddPrompt(mcp.NewPrompt("who_deployed_last",
 		mcp.WithPromptDescription("Find who ran the latest deployment for a specific project, module, and environment. Handles reference resolution, fallback search, and environment ID lookup automatically."),
@@ -23,45 +38,45 @@ func Register(s *server.MCPServer) {
 		mcp.WithArgument("module", mcp.ArgumentDescription("Module name (e.g. network, database, storage)")),
 		mcp.WithArgument("environment", mcp.ArgumentDescription("Environment to check (dev, staging, prod)"), mcp.RequiredArgument()),
 		mcp.WithArgument("plan_type", mcp.ArgumentDescription("Plan type: app, infra (default: app)")),
-	), handleWhoDeployedLast)
+	), adapt(handleWhoDeployedLast))
 
 	s.AddPrompt(mcp.NewPrompt("explain_environment",
 		mcp.WithPromptDescription("Explain what a deployment environment name means — parses it into env, module, ref, and action components with descriptions."),
 		mcp.WithArgument("environment_name", mcp.ArgumentDescription("The environment name to explain (e.g. dev_network_payments_deploy, staging_network_checkout_deploy)"), mcp.RequiredArgument()),
 		mcp.WithArgument("plan_type", mcp.ArgumentDescription("Plan type for accurate parsing: app, infra")),
-	), handleExplainEnvironment)
+	), adapt(handleExplainEnvironment))
 
 	s.AddPrompt(mcp.NewPrompt("plan_type_guide",
 		mcp.WithPromptDescription("Get a complete guide for a plan type: naming format, environment format, all actions with descriptions, modules, log patterns for success detection, custom inputs, and usage hints."),
 		mcp.WithArgument("plan_type", mcp.ArgumentDescription("Plan type: app, infra"), mcp.RequiredArgument()),
-	), handlePlanTypeGuide)
+	), adapt(handlePlanTypeGuide))
 
 	s.AddPrompt(mcp.NewPrompt("build_investigation",
 		mcp.WithPromptDescription("Investigate a specific build result — get expanded details including changes, artifacts, stages, and a direct link to the build log."),
 		mcp.WithArgument("build_key", mcp.ArgumentDescription("The build result key (e.g. EXAMPLE-PAYMENTSINFRA-430, EXAMPLE-APPCHECKOUT-541)"), mcp.RequiredArgument()),
-	), handleBuildInvestigation)
+	), adapt(handleBuildInvestigation))
 
 	s.AddPrompt(mcp.NewPrompt("deployment_history",
 		mcp.WithPromptDescription("Show who deployed what and when for a specific deployment environment. Returns the last N deployments with deployer, timestamp, version, and status."),
 		mcp.WithArgument("environment_id", mcp.ArgumentDescription("The deployment environment ID (numeric, from bamboo_get_deployment_project)"), mcp.RequiredArgument()),
 		mcp.WithArgument("limit", mcp.ArgumentDescription("Number of recent deployments to show (default: 10)")),
-	), handleDeploymentHistory)
+	), adapt(handleDeploymentHistory))
 
 	s.AddPrompt(mcp.NewPrompt("resolve_plan",
 		mcp.WithPromptDescription("Resolve a human-friendly team/project reference to a full Bamboo plan key and show its latest build status."),
 		mcp.WithArgument("reference", mcp.ArgumentDescription("Team or project reference — remove hyphens and uppercase (e.g. CHECKOUT, PAYMENTS)"), mcp.RequiredArgument()),
 		mcp.WithArgument("plan_type", mcp.ArgumentDescription("Plan type: app, infra")),
-	), handleResolvePlan)
+	), adapt(handleResolvePlan))
 
 	s.AddPrompt(mcp.NewPrompt("build_repositories",
 		mcp.WithPromptDescription("Find which repositories and commits were included in a specific build or plan. Use when asked 'which repo/commit was released', 'what code changes are in this build', or 'which repos does this plan track'."),
 		mcp.WithArgument("build_key", mcp.ArgumentDescription("Build result key to get commit/repo info for (e.g. EXAMPLE-APPCHECKOUT-4859). Use this for a specific build.")),
 		mcp.WithArgument("plan_key", mcp.ArgumentDescription("Plan key to get all tracked repositories (e.g. EXAMPLE-APPCHECKOUT). Use this for repo config of the plan.")),
-	), handleBuildRepositories)
+	), adapt(handleBuildRepositories))
 
 	s.AddPrompt(mcp.NewPrompt("health_check",
 		mcp.WithPromptDescription("Run a full health check of the Bamboo server — connectivity, authentication, server version, and build queue status."),
-	), handleHealthCheck)
+	), adapt(handleHealthCheck))
 }
 
 func handleDeployStatus(args map[string]string) (*mcp.GetPromptResult, error) {

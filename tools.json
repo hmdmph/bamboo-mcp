@@ -1,30 +1,49 @@
 {
   "tools": [
     {
-      "name": "bamboo_server_info",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get Bamboo server information",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "expand": {
             "description": "Optional fields to expand",
             "type": "string"
           }
-        }
-      }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "bamboo_server_info"
     },
     {
-      "name": "bamboo_health_check",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Check if Bamboo server is healthy and accessible",
       "inputSchema": {
+        "properties": {},
+        "required": [],
         "type": "object"
-      }
+      },
+      "name": "bamboo_health_check"
     },
     {
-      "name": "bamboo_list_projects",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "List Bamboo projects with pagination",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "maxResult": {
             "description": "Maximum number of results per page (default: 25)",
@@ -34,21 +53,36 @@
             "description": "Start index for pagination (default: 0)",
             "type": "number"
           }
-        }
-      }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "bamboo_list_projects"
     },
     {
-      "name": "bamboo_list_all_projects",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "List all Bamboo projects (fetches all pages automatically)",
       "inputSchema": {
+        "properties": {},
+        "required": [],
         "type": "object"
-      }
+      },
+      "name": "bamboo_list_all_projects"
     },
     {
-      "name": "bamboo_get_project",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get details of a specific Bamboo project",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "projectKey": {
             "description": "The project key (e.g., 'PROJ')",
@@ -57,21 +91,35 @@
         },
         "required": [
           "projectKey"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_project"
     },
     {
-      "name": "bamboo_list_plans",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "List all Bamboo build plans",
       "inputSchema": {
+        "properties": {},
+        "required": [],
         "type": "object"
-      }
+      },
+      "name": "bamboo_list_plans"
     },
     {
-      "name": "bamboo_get_plan",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get details of a specific Bamboo build plan",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "planKey": {
             "description": "The plan key (e.g., 'PROJ-PLAN')",
@@ -80,14 +128,20 @@
         },
         "required": [
           "planKey"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_plan"
     },
     {
-      "name": "bamboo_search_plans",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Search for Bamboo build plans",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "searchTerm": {
             "description": "Search term to find plans",
@@ -96,14 +150,20 @@
         },
         "required": [
           "searchTerm"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_search_plans"
     },
     {
-      "name": "bamboo_list_plan_branches",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "List all branches for a specific plan",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "planKey": {
             "description": "The plan key (e.g., 'PROJ-PLAN')",
@@ -112,14 +172,20 @@
         },
         "required": [
           "planKey"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_list_plan_branches"
     },
     {
-      "name": "bamboo_get_plan_branch",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get details of a specific plan branch",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "branchName": {
             "description": "The branch name",
@@ -133,14 +199,20 @@
         "required": [
           "planKey",
           "branchName"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_plan_branch"
     },
     {
-      "name": "bamboo_get_latest_result",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get the latest build result for a plan",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "planKey": {
             "description": "The plan key (e.g., 'PROJ-PLAN')",
@@ -149,14 +221,20 @@
         },
         "required": [
           "planKey"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_latest_result"
     },
     {
-      "name": "bamboo_list_build_results",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "List build results for a plan",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "maxResults": {
             "description": "Maximum number of results to return (default: 25)",
@@ -169,14 +247,20 @@
         },
         "required": [
           "planKey"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_list_build_results"
     },
     {
-      "name": "bamboo_get_build_result",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get details of a specific build result",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "buildKey": {
             "description": "The build key (e.g., 'PROJ-PLAN-123')",
@@ -185,14 +269,20 @@
         },
         "required": [
           "buildKey"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_build_result"
     },
     {
-      "name": "bamboo_get_build_result_expanded",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get expanded build result with changes, artifacts, metadata, comments, labels, JIRA issues, stages, and log URLs. Use this when you need detailed build information including what changed and deployment artifacts.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "buildKey": {
             "description": "The build key (e.g., 'PROJ-PLAN-123')",
@@ -201,14 +291,20 @@
         },
         "required": [
           "buildKey"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_build_result_expanded"
     },
     {
-      "name": "bamboo_get_build_repositories",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get the repositories and commits (VCS revisions) associated with a specific build. Returns repository names, commit IDs, authors, and branch info. Use this to find which repo/commit was released in a build.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "buildKey": {
             "description": "The build result key (e.g., 'EXAMPLE-APPCHECKOUT-4859')",
@@ -217,14 +313,20 @@
         },
         "required": [
           "buildKey"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_build_repositories"
     },
     {
-      "name": "bamboo_get_plan_repositories",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get the repositories linked to a Bamboo plan (VCS locations). Shows all source repositories configured for the plan. Use this to see which repos a plan tracks.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "planKey": {
             "description": "The plan key (e.g., 'EXAMPLE-APPCHECKOUT')",
@@ -233,34 +335,55 @@
         },
         "required": [
           "planKey"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_plan_repositories"
     },
     {
-      "name": "bamboo_get_build_queue",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get the current build queue",
       "inputSchema": {
+        "properties": {},
+        "required": [],
         "type": "object"
-      }
+      },
+      "name": "bamboo_get_build_queue"
     },
     {
-      "name": "bamboo_list_deployment_projects",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "List deployment projects (default: 10, truncated client-side from full list)",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "maxResult": {
             "description": "Maximum number of deployment projects to return (default: 10)",
             "type": "number"
           }
-        }
-      }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "bamboo_list_deployment_projects"
     },
     {
-      "name": "bamboo_list_deployment_projects_for_plan",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "List deployment projects linked to a specific build plan",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "planKey": {
             "description": "The plan key (e.g., 'PROJ-PLAN')",
@@ -269,14 +392,20 @@
         },
         "required": [
           "planKey"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_list_deployment_projects_for_plan"
     },
     {
-      "name": "bamboo_get_deployment_project",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get details of a specific deployment project",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "projectId": {
             "description": "The deployment project ID",
@@ -285,14 +414,20 @@
         },
         "required": [
           "projectId"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_deployment_project"
     },
     {
-      "name": "bamboo_get_environment_results",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get deployment history/results for a specific environment. Returns who deployed, when, status, version, and deployment result IDs.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "environmentId": {
             "description": "The deployment environment ID",
@@ -305,14 +440,20 @@
         },
         "required": [
           "environmentId"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_environment_results"
     },
     {
-      "name": "bamboo_get_deployment_result",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get full details of a specific deployment result including who triggered it, start/finish time, status, deployment version, and agent info.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "resultId": {
             "description": "The deployment result ID",
@@ -321,14 +462,20 @@
         },
         "required": [
           "resultId"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_deployment_result"
     },
     {
-      "name": "bamboo_list_deploy_versions",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "List versions (releases) for a deployment project. Shows release names, creation dates, and associated plan branch.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "maxResults": {
             "description": "Maximum number of versions to return (default: 10)",
@@ -341,14 +488,20 @@
         },
         "required": [
           "projectId"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_list_deploy_versions"
     },
     {
-      "name": "bamboo_get_deploy_version",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get details of a specific deployment version/release including name, creation date, creator, plan branch, and items.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "versionId": {
             "description": "The deployment version/release ID",
@@ -357,14 +510,20 @@
         },
         "required": [
           "versionId"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_deploy_version"
     },
     {
-      "name": "bamboo_get_deploy_version_status",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get the deployment status of a specific version across all environments. Shows which environments have this version deployed and their status.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "versionId": {
             "description": "The deployment version/release ID",
@@ -373,28 +532,50 @@
         },
         "required": [
           "versionId"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_deploy_version_status"
     },
     {
-      "name": "bamboo_get_plan_context",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get the plan context knowledge configuration. Returns naming conventions for plans, deployment environments, modules, and actions. Use this to understand how plans and deployments are structured.",
       "inputSchema": {
+        "properties": {},
+        "required": [],
         "type": "object"
-      }
+      },
+      "name": "bamboo_get_plan_context"
     },
     {
-      "name": "bamboo_reload_context",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Reload the plan context configuration from the context.yaml file. Use after editing the config.",
       "inputSchema": {
+        "properties": {},
+        "required": [],
         "type": "object"
-      }
+      },
+      "name": "bamboo_reload_context"
     },
     {
-      "name": "bamboo_resolve_plan",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Resolve a human-friendly reference name to a full Bamboo plan key. For example: reference='CHECKOUT' with planType='app' resolves to 'EXAMPLE-CHECKOUTAPP'. Searches Bamboo if direct lookup fails.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "planType": {
             "description": "Plan type: 'app', 'infra'. If omitted, tries direct key lookup.",
@@ -407,14 +588,20 @@
         },
         "required": [
           "reference"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_resolve_plan"
     },
     {
-      "name": "bamboo_get_deploy_status",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Smart deployment status checker. Resolves a reference to a plan, gets latest build status, finds deployment projects, filters environments, and fetches per-environment deployment history (who, when, status, version). Returns build status, deployment environments with latest deployment details, and Bamboo UI links.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "environment": {
             "description": "Filter environments by name (e.g., 'dev', 'staging', 'prod')",
@@ -435,14 +622,20 @@
         },
         "required": [
           "reference"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_deploy_status"
     },
     {
-      "name": "bamboo_explain_environment",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Parse a deployment environment name into its components (env, module, ref, action) using plan context knowledge. When the plan type declares modules, it resolves the module name and description. Provide planType for accurate parsing.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "environmentName": {
             "description": "The environment name to parse (e.g., 'staging_network_checkout_deploy', 'dev_deploy', 'prod_nodegroup_inspect')",
@@ -455,14 +648,20 @@
         },
         "required": [
           "environmentName"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_explain_environment"
     },
     {
-      "name": "bamboo_get_plan_type_info",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
       "description": "Get detailed information about a specific plan type including its naming format, environment format, available actions with descriptions, modules, log patterns for success detection, custom inputs, and hints.",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "planType": {
             "description": "Plan type: 'app', 'infra'",
@@ -471,14 +670,20 @@
         },
         "required": [
           "planType"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bamboo_get_plan_type_info"
     },
     {
-      "name": "bitbucket_add_repo",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
       "description": "Add a Bitbucket repository configuration",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "name": {
             "description": "Name/alias for the repository",
@@ -502,14 +707,20 @@
           "url",
           "username",
           "token"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bitbucket_add_repo"
     },
     {
-      "name": "bitbucket_get_repo",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
       "description": "Get a stored Bitbucket repository configuration",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "name": {
             "description": "Name/alias of the repository",
@@ -518,21 +729,35 @@
         },
         "required": [
           "name"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bitbucket_get_repo"
     },
     {
-      "name": "bitbucket_list_repos",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
       "description": "List all stored Bitbucket repository configurations",
       "inputSchema": {
+        "properties": {},
+        "required": [],
         "type": "object"
-      }
+      },
+      "name": "bitbucket_list_repos"
     },
     {
-      "name": "bitbucket_delete_repo",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
       "description": "Delete a stored Bitbucket repository configuration",
       "inputSchema": {
-        "type": "object",
         "properties": {
           "name": {
             "description": "Name/alias of the repository to delete",
@@ -541,8 +766,10 @@
         },
         "required": [
           "name"
-        ]
-      }
+        ],
+        "type": "object"
+      },
+      "name": "bitbucket_delete_repo"
     }
   ]
 }

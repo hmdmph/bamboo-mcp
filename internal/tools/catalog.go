@@ -7,7 +7,8 @@ import (
 )
 
 // Handler is the signature shared by every tool implementation in this package.
-// It matches server.ToolHandlerFunc, so a Handler can be registered as-is.
+// It matches security.ArgsHandler; security.PolicyEngine.Wrap adapts it to
+// mcp-go's context/request-based server.ToolHandlerFunc at registration.
 type Handler func(arguments map[string]interface{}) (*mcp.CallToolResult, error)
 
 // Catalog returns the static declaration of every tool this server exposes.
@@ -21,7 +22,35 @@ func Catalog() []mcp.Tool {
 	catalog = append(catalog, bambooCatalog()...)
 	catalog = append(catalog, contextCatalog()...)
 	catalog = append(catalog, bitbucketCatalog()...)
+	for i := range catalog {
+		catalog[i].Annotations = annotationsFor(catalog[i].Name)
+	}
 	return catalog
+}
+
+// annotationsFor states each tool's behaviour hints explicitly. mcp-go defaults
+// an unannotated tool to readOnlyHint=false and destructiveHint=true, which would
+// tell clients this read-only server can modify things.
+//
+// Every Bamboo tool is a GET against the Bamboo REST API. The bitbucket_* tools
+// only touch the local credential store, so they are closed-world, and two of
+// them write to it.
+func annotationsFor(name string) mcp.ToolAnnotation {
+	readOnly, destructive, idempotent, openWorld := true, false, true, true
+	switch name {
+	case "bitbucket_get_repo", "bitbucket_list_repos":
+		openWorld = false
+	case "bitbucket_add_repo":
+		readOnly, openWorld = false, false
+	case "bitbucket_delete_repo":
+		readOnly, destructive, openWorld = false, true, false
+	}
+	return mcp.ToolAnnotation{
+		ReadOnlyHint:    mcp.ToBoolPtr(readOnly),
+		DestructiveHint: mcp.ToBoolPtr(destructive),
+		IdempotentHint:  mcp.ToBoolPtr(idempotent),
+		OpenWorldHint:   mcp.ToBoolPtr(openWorld),
+	}
 }
 
 // CatalogJSON renders Catalog() as an MCP tools/list payload. The shape matches

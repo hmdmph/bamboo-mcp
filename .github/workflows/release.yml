@@ -9,12 +9,17 @@ name: Release
 #   3. a GitHub Release with cross-compiled binaries, checksums and notes
 #
 # To re-run a release, use "Re-run all jobs" on the failed run — that replays
-# it against the same tag. A workflow_dispatch trigger is deliberately omitted:
-# the whole pipeline keys off a tag ref, which a branch dispatch cannot supply.
+# it against the same tag.
+#
+# workflow_dispatch exists for deps-release.yml: a tag pushed with GITHUB_TOKEN
+# does not fire the push trigger, so that workflow dispatches this one on the
+# tag ref instead. The pipeline keys off the tag, so a dispatch on a branch is
+# refused by the guard job below.
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 concurrency:
   group: release-${{ github.ref }}
@@ -23,7 +28,6 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  GO_VERSION: "1.23"
 
 jobs:
   # ── 1. Gate ─────────────────────────────────────────────────────────────────
@@ -31,11 +35,17 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
+      - name: Require a version tag
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          echo "::error::Release must run on a v* tag, not ${GITHUB_REF}. Dispatch it with the tag selected as the ref."
+          exit 1
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: gofmt
@@ -175,7 +185,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: Build release binaries
