@@ -28,6 +28,11 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  # Docker Hub mirror. Every release pushes the same image to both registries.
+  # Needs the DOCKERHUB_TOKEN secret: an access token for this account with
+  # Read & Write scope.
+  DOCKERHUB_USERNAME: hmdmph
+  DOCKERHUB_IMAGE: docker.io/hmdmph/bamboo-mcp
 
 jobs:
   # ── 1. Gate ─────────────────────────────────────────────────────────────────
@@ -83,6 +88,13 @@ jobs:
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -94,7 +106,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            ${{ env.DOCKERHUB_IMAGE }}
           # v1.2.3 produces: 1.2.3, 1.2, 1, latest
           # A pre-release tag (v1.2.3-rc1) produces only 1.2.3-rc1 — never latest.
           tags: |
@@ -133,6 +147,14 @@ jobs:
         continue-on-error: true
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest build provenance (Docker Hub)
+        uses: actions/attest-build-provenance@v2
+        continue-on-error: true
+        with:
+          subject-name: ${{ env.DOCKERHUB_IMAGE }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
@@ -227,6 +249,8 @@ jobs:
 
           \`\`\`bash
           docker pull ${IMAGE}:${VERSION#v}
+          # or from Docker Hub
+          docker pull hmdmph/bamboo-mcp:${VERSION#v}
           \`\`\`
 
           Multi-arch (\`linux/amd64\`, \`linux/arm64\`), digest \`${{ needs.docker.outputs.digest }}\`.
